@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Security System - Final Project</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style> 
+        :root {
+            --primary: #0f172a; /* Koyu Lacivert (Kurumsal) */
+            --accent: #3b82f6;  /* Canlı Mavi (Aksiyon) */
+            --success: #10b981; /* Yeşil (Onay) */
+            --danger: #ef4444;  /* Kırmızı (İhlal) */
+            --bg: #f8fafc;      /* Açık Gri Arkaplan */
+            --surface: #ffffff; /* Beyaz Kartlar */
+            --border: #e2e8f0;  /* İnce Çizgiler */
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            color: #334155;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ----------------------------------------------------
+           LAYOUT & NAVIGATION
+        ---------------------------------------------------- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 0 2rem;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .brand { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+        
+        .nav-links { display: flex; gap: 20px; }
+        .nav-item { cursor: pointer; padding: 5px 10px; border-radius: 4px; transition: 0.2s; font-size: 0.9rem; opacity: 0.8; }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); opacity: 1; }
+
+        .main-container {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        /* ----------------------------------------------------
+           PAGE MANAGEMENT
+        ---------------------------------------------------- */
+        .page { display: none; animation: slideUp 0.4s ease-out; }
+        .page.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ----------------------------------------------------
+           COMPONENTS (Cards, Forms, Buttons)
+        ---------------------------------------------------- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #64748b; }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: 0.2s;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; } /* (tasarımı bozmaz, senin butonun zaten vardı) */
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: #64748b; }
+        .btn:hover { filter: brightness(110%); }
+
+        /* ----------------------------------------------------
+           SPECIFIC PAGE STYLES
+        ---------------------------------------------------- */
+        
+        /* LOGIN */
+        .login-wrapper {
+            display: flex; justify-content: center; align-items: center; height: 80vh;
+        }
+        .login-box { width: 400px; padding: 2rem; border-top: 5px solid var(--accent); }
+
+        /* SEATING PLAN PREVIEW */
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); /* JS ile dinamik ayarlanacak */
+            gap: 10px;
+            margin-top: 1rem;
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .seat {
+            height: 40px;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem;
+            color: #64748b;
+            cursor: pointer;
+            transition: 0.15s;
+            user-select: none;
+        }
+        .seat:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Seat state colors (design bozulmaz, sadece dummy görünür) */
+        .seat.assigned { border-color: rgba(59,130,246,.6); background: rgba(59,130,246,.08); color: #1e3a8a; }
+        .seat.checked  { border-color: rgba(16,185,129,.7); background: rgba(16,185,129,.10); color: #065f46; }
+        .seat.violation{ border-color: rgba(239,68,68,.7); background: rgba(239,68,68,.10); color: #7f1d1d; }
+
+        /* PROCTOR CHECK-IN LAYOUT */
+        .split-view { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem; }
+        
+        .camera-feed {
+            width: 100%; height: 250px;
+            background: #1e293b;
+            border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+
+        .camera-feed video, .camera-feed canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+        .camera-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: #94a3b8;
+            text-align: center;
+            padding: 12px;
+        }
+        .camera-overlay i { opacity: 0.9; }
+        .camera-overlay small { opacity: 0.9; }
+
+
+        /* RESULT BADGES */
+        .result-box {
+            padding: 1.5rem; border-radius: 8px; text-align: center; display: none; margin-top: 1rem;
+            animation: slideUp 0.3s ease;
+        }
+        .result-success { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
+        .result-danger { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; text-align: left; }
+
+        /* REPORTING DASHBOARD */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
+        .stat-number { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 0.85rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* small table inside cards */
+        .mini-table { width:100%; border-collapse: collapse; margin-top: 12px; }
+        .mini-table th, .mini-table td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; font-size: 0.88rem; }
+        .mini-table th { text-align:left; color:#64748b; font-size:0.78rem; text-transform: uppercase; letter-spacing: .04em; background:#f8fafc; }
+        .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.78rem; font-weight:700; }
+        .pill.ok { background:#dcfce7; color:#166534; }
+        .pill.bad{ background:#fee2e2; color:#991b1b; }
+        .pill.info{ background:#dbeafe; color:#1e40af; }
+    </style>
+</head>
+<body>
+
+    <header id="main-header" style="display: none;">
+        <div class="brand">
+            <i class="fas fa-shield-alt"></i> ExamSecurity <span style="font-weight: 400; opacity: 0.7;">| Final Project</span>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item admin-only" onclick="showPage('page-admin')"><i class="fas fa-cog"></i> Exam Setup</div>
+            <div class="nav-item admin-only" onclick="showPage('page-reports')"><i class="fas fa-chart-pie"></i> Reports</div>
+            <div class="nav-item proctor-only" onclick="showPage('page-proctor')"><i class="fas fa-user-check"></i> Check-in</div>
+            <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
+    </header>
+
+    <div class="main-container">
+
+        <div id="page-login" class="page active login-wrapper">
+            <div class="card login-box">
+                <h2 style="text-align: center; color: var(--primary);">Sisteme Giriş</h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: #64748b;">Lütfen rolünüzü seçerek giriş yapın.</p>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label>Kullanıcı Adı</label>
+                    <input id="login-username" type="text" placeholder="kullanici@univ.edu.tr" value="admin">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label>Şifre</label>
+                    <input id="login-password" type="password" placeholder="••••••••" value="Admin123">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label>Giriş Rolü (Role)</label>
+                    <select id="role-select">
+                        <option value="admin">Admin (Sınav Koordinatörü)</option>
+                        <option value="proctor">Proctor (Gözetmen)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">
+                    Güvenli Giriş Yap <i class="fas fa-arrow-right"></i>
+                </button>
+
+                <div style="margin-top:12px; font-size:.85rem; color:#64748b;">
+                    <strong>Demo Users:</strong> admin/Admin123, proctor/1234
+                </div>
+            </div>
+        </div>
+
+
+        <div id="page-admin" class="page">
+            <h1 class="section-title"><i class="fas fa-plus-circle"></i> Sınav Oluşturma & Yönetim</h1>
+
+            <div class="card">
+                <h3>1. Sınav Detayları (Exam Details)</h3>
+                <div class="form-grid">
+                    <div>
+                        <label>Sınav Adı</label>
+                        <input id="admin-exam-name" type="text" placeholder="Örn: CS305 Final Sınavı">
+                    </div>
+                    <div>
+                        <label>Sınav Salonu (Room)</label>
+                        <input id="admin-exam-room" type="text" placeholder="Örn: A-101">
+                    </div>
+                    <div>
+                        <label>Tarih</label>
+                        <input id="admin-exam-date" type="date">
+                    </div>
+                    <div>
+                        <label>Saat</label>
+                        <input id="admin-exam-time" type="time">
+                    </div>
+                </div>
+                <div style="margin-top:12px; color:#64748b; font-size:.9rem;">
+                    <i class="fa fa-database"></i> Dummy data kaynağı: SSMS tabloların (Exams + Users + Students + Roster + Assignments)
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>2. Öğrenci Listesi (Roster)</h3>
+                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 10px;">
+                    Excel (.xlsx) veya CSV formatında öğrenci listesini yükleyin.
+                </p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" style="width: auto;">
+                    <button class="btn btn-outline" type="button" onclick="alert('Demo: Bu ekranda roster SSMS dummy data ile gösteriliyor.')"><i class="fas fa-upload"></i> Listeyi Yükle</button>
+                </div>
+
+                <!-- Dummy roster list (design bozulmadan card içi) -->
+                <table class="mini-table" id="admin-roster-table" aria-label="Roster">
+                    <thead>
+                        <tr>
+                            <th>StudentId</th>
+                            <th>FullName</th>
+                            <th>Email</th>
+                            <th>Active</th>
+                            <th>Assigned Seat</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>3. Oturma Düzeni (Seating Plan)</h3>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 2fr;">
+                    <div>
+                        <label>Satır Sayısı</label>
+                        <input id="admin-seat-rows" type="number" value="4" min="1">
+                    </div>
+                    <div>
+                        <label>Sütun Sayısı</label>
+                        <input id="admin-seat-cols" type="number" value="6" min="1">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button class="btn btn-primary" type="button" onclick="renderSeating()"><i class="fas fa-sync"></i> Önizle</button>
+                    </div>
+                </div>
+                
+                <div class="seat-grid" id="admin-seat-grid"></div>
+
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button class="btn btn-success" type="button" onclick="alert('Demo: Exam save backend yerine localStorage kullanılıyor.'); saveExamFromAdmin();">
+                        <i class="fas fa-save"></i> Sınavı Kaydet
+                    </button>
+                </div>
+
+                <div style="margin-top:10px; font-size:.85rem; color:#64748b;">
+                    <span class="pill info">Assigned</span>
+                    <span class="pill ok" style="margin-left:6px;">Checked-in</span>
+                    <span class="pill bad" style="margin-left:6px;">Violation</span>
+                    <span style="margin-left:10px;">(SeatAssignments + CheckIns tablosuna göre)</span>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="page-proctor" class="page">
+            <h1 class="section-title"><i class="fas fa-user-shield"></i> Gözetmen Paneli (Check-in Station)</h1>
+            
+            <div class="split-view">
+                <div class="card">
+                    <h3>Öğrenci Doğrulama</h3>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label>Öğrenci Seçiniz (Listeden)</label>
+                        <select id="student-selector"></select>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label>Gözlemlenen Sıra No</label>
+                        <input type="text" placeholder="Örn: B3" id="seat-input">
+                        <div style="font-size:.85rem; color:#64748b; margin-top:6px;">
+                            İpucu: Student’ın assigned seat’ini yanlış girersen <strong>WRONG_SEAT</strong> violation çıkar.
+                        </div>
+                    </div>
+
+                    
+                    <div class="camera-feed" style="position: relative; overflow: hidden;">
+                        <video id="live-video" autoplay playsinline muted style="display:none;"></video>
+                        <canvas id="capture-canvas" style="display:none;"></canvas>
+
+                        <div id="camera-overlay" class="camera-overlay">
+                            <i class="fas fa-camera fa-3x"></i>
+                            <span>Kamera Görüntüsü</span>
+                            <small id="camera-status" style="margin-top:6px;">Kamera başlatılıyor...</small>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" style="flex: 1;" type="button" onclick="capturePhoto()"><i class="fas fa-camera"></i> Çek</button>
+                        <button class="btn btn-outline" style="flex: 1;" type="button" onclick="alert('Demo: Upload simülasyon. EvidenceRef opsiyonel violation’da.')"><i class="fas fa-upload"></i> Yükle</button>
+                    </div>
+
+                    <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+                    
+                    <button class="btn btn-primary" style="width: 100%; padding: 1rem;" onclick="runVerification()">
+                        DOĞRULA VE GİRİŞ YAP (VERIFY)
+                    </button>
+                </div>
+
+                <div>
+                    <div id="status-waiting" class="card" style="text-align: center; padding: 3rem; color: #94a3b8;">
+                        <i class="fas fa-fingerprint fa-4x" style="margin-bottom: 1rem;"></i>
+                        <p>Sistem doğrulama için bekliyor...</p>
+                        <small>CheckIns tablosundaki dummy kayıtlar ile simülasyon</small>
+                    </div>
+
+                    <div id="status-success" class="result-box result-success">
+                        <i class="fas fa-check-circle fa-3x" style="margin-bottom: 10px;"></i>
+                        <h2>Giriş Onaylandı</h2>
+                        <p><strong>Timestamp:</strong> <span class="current-time"></span></p>
+                        <div style="text-align: left; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 6px; margin-top: 10px;">
+                            <div><i class="fas fa-check"></i> <strong>Kimlik (ML):</strong> <span id="success-ml"></span></div>
+                            <div><i class="fas fa-check"></i> <strong>Oturma Düzeni:</strong> <span id="success-seat"></span></div>
+                        </div>
+                    </div>
+
+                    <div id="status-violation" class="result-box result-danger">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            <h2 style="margin: 0;">İhlal Tespit Edildi!</h2>
+                        </div>
+                        
+                        <div style="background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #fca5a5; margin-bottom: 1rem;">
+                            <strong>Reason:</strong> <span id="violation-reason-text">IDENTITY_MISMATCH</span>
+                        </div>
+
+                        <label style="color: #7f1d1d;">Gözetmen Notları:</label>
+                        <textarea id="violation-notes" rows="3" placeholder="Olayı açıklayınız..."></textarea>
+                        
+                        <label style="color: #7f1d1d; margin-top: 10px;">Kanıt Görseli (Opsiyonel):</label>
+                        <input id="violation-evidence" type="file">
+
+                        <button id="create-violation-btn" class="btn btn-danger" style="width: 100%; margin-top: 1rem;" type="button" onclick="createViolationFromUI()">
+                            <i class="fas fa-save"></i> İHLAL KAYDINI OLUŞTUR
+                        </button>
+                        <div style="margin-top:10px; font-size:.85rem; color:#7f1d1d;">
+                            Not: Violation kaydı oluşturunca Reports ekranı da güncellenir.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="page-reports" class="page">
+            <h1 class="section-title"><i class="fas fa-chart-bar"></i> Sınav Raporları</h1>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Toplam Öğrenci</div>
+                    <div class="stat-number" id="rep-total">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Giriş Yapan (Check-in)</div>
+                    <div class="stat-number" id="rep-checked" style="color: var(--success);">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">İhlaller (Violations)</div>
+                    <div class="stat-number" id="rep-violations" style="color: var(--danger);">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Gelmeyen</div>
+                    <div class="stat-number" id="rep-absent" style="color: #94a3b8;">0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Detaylı Döküm</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f1f5f9; text-align: left;">
+                            <th style="padding: 10px;">Zaman</th>
+                            <th style="padding: 10px;">Öğrenci ID</th>
+                            <th style="padding: 10px;">Durum</th>
+                            <th style="padding: 10px;">Notlar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rep-table-body"></tbody>
+                </table>
+                <div style="margin-top:10px; font-size:.85rem; color:#64748b;">
+                    Kaynak: CheckIns + Violations (SSMS dummy) + Proctor ekranında yapılan yeni kayıtlar (localStorage).
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ============================================================
+           DUMMY DB (SSMS screenshots -> in-memory + localStorage)
+           Design same, just render dummy data.
+        ============================================================ */
+
+        const STORAGE_KEY = "ExamSecurityDemoDB_v1";
+
+        const seedDB = {
+            users: [
+                { UserId: 1, Username: "admin",   PasswordHash: "Admin123", Role: "Admin",   DisplayName: "Exam Coordinator", IsActive: true, CreatedAt: "2026-01-09T09:00:00" },
+                { UserId: 2, Username: "proctor", PasswordHash: "1234",     Role: "Proctor", DisplayName: "Proctor User",     IsActive: true, CreatedAt: "2026-01-09T09:00:00" }
+            ],
+            exams: [
+                { ExamId: 1, ExamName: "CS305 Final Sınavı", Room: "A-101", ExamDate: "2026-01-15", ExamTime: "10:00:00", SeatRows: 4, SeatCols: 6, CreatedByUserId: 1, CreatedAt: "2026-01-09T09:10:00" },
+                { ExamId: 2, ExamName: "SE Final",          Room: "B-201", ExamDate: "2026-01-20", ExamTime: "10:00:00", SeatRows: 5, SeatCols: 6, CreatedByUserId: 1, CreatedAt: "2026-01-09T10:10:00" },
+                { ExamId: 3, ExamName: "SE Final",          Room: "B-201", ExamDate: "2026-01-20", ExamTime: "10:00:00", SeatRows: 5, SeatCols: 6, CreatedByUserId: 1, CreatedAt: "2026-01-09T10:20:00" }
+            ],
+            students: [
+                { StudentId: 202001, FullName: "Ahmet Yılmaz",  Email: "ahmet.yilmaz@univ.edu.tr",  IsActive: true,  CreatedAt: "2026-01-09T09:00:00" },
+                { StudentId: 202002, FullName: "Ayşe Demir",    Email: "ayse.demir@univ.edu.tr",    IsActive: true,  CreatedAt: "2026-01-09T09:00:00" },
+                { StudentId: 202003, FullName: "Mehmet Kaya",   Email: "mehmet.kaya@univ.edu.tr",   IsActive: true,  CreatedAt: "2026-01-09T09:00:00" },
+                { StudentId: 202004, FullName: "Zeynep Arslan", Email: "zeynep.arslan@univ.edu.tr", IsActive: true,  CreatedAt: "2026-01-09T09:00:00" },
+                { StudentId: 202005, FullName: "Can Özkan",     Email: "can.ozkan@univ.edu.tr",     IsActive: false, CreatedAt: "2026-01-09T09:00:00" }
+            ],
+            examRoster: [
+                // ExamId=1
+                { ExamId: 1, StudentId: 202001, AddedAt: "2026-01-09T09:20:00" },
+                { ExamId: 1, StudentId: 202002, AddedAt: "2026-01-09T09:20:00" },
+                { ExamId: 1, StudentId: 202003, AddedAt: "2026-01-09T09:20:00" },
+                { ExamId: 1, StudentId: 202004, AddedAt: "2026-01-09T09:20:00" },
+                { ExamId: 1, StudentId: 202005, AddedAt: "2026-01-09T09:20:00" },
+                // ExamId=3
+                { ExamId: 3, StudentId: 202001, AddedAt: "2026-01-09T11:20:00" },
+                { ExamId: 3, StudentId: 202002, AddedAt: "2026-01-09T11:20:00" },
+                { ExamId: 3, StudentId: 202003, AddedAt: "2026-01-09T11:20:00" }
+            ],
+            seatAssignments: [
+                { ExamId: 1, StudentId: 202001, SeatCode: "A1", AssignedAt: "2026-01-09T09:30:00" },
+                { ExamId: 1, StudentId: 202002, SeatCode: "A2", AssignedAt: "2026-01-09T09:30:00" },
+                { ExamId: 1, StudentId: 202003, SeatCode: "A3", AssignedAt: "2026-01-09T09:30:00" },
+                { ExamId: 1, StudentId: 202004, SeatCode: "B1", AssignedAt: "2026-01-09T09:30:00" },
+                { ExamId: 1, StudentId: 202005, SeatCode: "B2", AssignedAt: "2026-01-09T09:30:00" }
+            ],
+            checkIns: [
+                { CheckInId: 1, ExamId: 1, StudentId: 202001, ProctorUserId: 2, ObservedSeat: "A1", IdentityMatch: 98, IdentityResult: "MATCH",    SeatResult: "OK",     Status: "CHECKED_IN", CapturedImage: (window.__capturedImageDataUrl || null), Notes: null,                     CreatedAt: "2026-01-09T10:01:23" },
+                { CheckInId: 2, ExamId: 1, StudentId: 202002, ProctorUserId: 2, ObservedSeat: "B3", IdentityMatch: 95, IdentityResult: "MATCH",    SeatResult: "NOT_OK", Status: "VIOLATION",  CapturedImage: (window.__capturedImageDataUrl || null), Notes: "Observed seat mismatch.", CreatedAt: "2026-01-09T10:04:15" },
+                { CheckInId: 3, ExamId: 1, StudentId: 202003, ProctorUserId: 2, ObservedSeat: "A3", IdentityMatch: 30, IdentityResult: "NO_MATCH", SeatResult: "OK",     Status: "VIOLATION",  CapturedImage: (window.__capturedImageDataUrl || null), Notes: "Face verification failed.", CreatedAt: "2026-01-09T10:06:40" }
+            ],
+            violations: [
+                { ViolationId: 1, CheckInId: 2, ExamId: 1, StudentId: 202002, ViolationType: "WRONG_SEAT",        Details: "Assigned: A2, Observed: B3", EvidenceRef: null, CreatedAt: "2026-01-09T10:04:15" },
+                { ViolationId: 2, CheckInId: 3, ExamId: 1, StudentId: 202003, ViolationType: "IDENTITY_MISMATCH", Details: "Match score: 30% (NO_MATCH)", EvidenceRef: null, CreatedAt: "2026-01-09T10:06:40" }
+            ],
+            session: {
+                role: null,
+                user: null,
+                currentExamId: 1,
+                lastCheckInId: 3,
+                lastViolationId: 2,
+                pendingViolation: null // { CheckInId, ExamId, StudentId, ViolationType, Details }
+            }
+        };
+
+        function getDB() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(seedDB));
+                return structuredClone(seedDB);
+            }
+            try { return JSON.parse(raw); } catch { 
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(seedDB));
+                return structuredClone(seedDB);
+            }
+        }
+
+        function setDB(db) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
+
+        function esc(s) {
+            return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+        }
+
+        function fmtTime(iso) {
+            if (!iso) return "-";
+            try {
+                const d = new Date(iso);
+                return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+            } catch { return iso; }
+        }
+
+        function findStudent(db, studentId) {
+            return db.students.find(s => s.StudentId === Number(studentId));
+        }
+
+        function assignedSeat(db, examId, studentId) {
+            const a = db.seatAssignments.find(x => x.ExamId === Number(examId) && x.StudentId === Number(studentId));
+            return a ? a.SeatCode : null;
+        }
+
+        function latestCheckIn(db, examId, studentId) {
+            const list = db.checkIns
+                .filter(c => c.ExamId === Number(examId) && c.StudentId === Number(studentId))
+                .sort((a,b) => (a.CheckInId - b.CheckInId));
+            return list.length ? list[list.length-1] : null;
+        }
+
+        /* ----------------------------------------------------
+           NAVIGATION LOGIC
+        ---------------------------------------------------- */
+        function showPage(pageId) {
+            const currentActive = document.querySelector('.page.active')?.id;
+
+            // If we are leaving proctor page, release camera
+            if (currentActive === "page-proctor" && pageId !== "page-proctor") {
+                stopCamera();
+            }
+
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            // Sayfa değişince raporları da yenile
+            if (pageId === "page-reports") renderReports();
+            if (pageId === "page-admin") { renderAdmin(); renderSeating(); }
+            if (pageId === "page-proctor") renderProctor();
+        }
+
+        /* ----------------------------------------------------
+           AUTHENTICATION LOGIC (Mock -> Users tablosu)
+        ---------------------------------------------------- */
+        function handleLogin() {
+            const roleSelected = document.getElementById('role-select').value;
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const db = getDB();
+            const user = db.users.find(u => u.Username === username && u.PasswordHash === password && u.IsActive);
+
+            if (!user) {
+                alert("Kullanıcı adı veya şifre yanlış. Demo: admin/Admin123, proctor/1234");
+                return;
+            }
+
+            // Role doğrulama (istersen seçili role ile aynı olmalı diyebilirsin)
+            const normalizedRole = (user.Role || "").toLowerCase();
+            const desired = roleSelected.toLowerCase();
+            if (normalizedRole !== desired) {
+                // Tasarım bozmadan uyarı: ama giriş yine olsun
+                console.warn("Role select farklı, user role esas alındı.");
+            }
+
+            db.session.user = { UserId: user.UserId, Username: user.Username, Role: user.Role, DisplayName: user.DisplayName };
+            db.session.role = user.Role;
+            setDB(db);
+
+            const header = document.getElementById('main-header');
+            header.style.display = 'flex';
+
+            if (normalizedRole === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.proctor-only').forEach(el => el.style.display = 'none');
+                showPage('page-admin');
+            } else {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.proctor-only').forEach(el => el.style.display = 'block');
+                showPage('page-proctor');
+            }
+        }
+
+        function logout() {
+            stopCamera();
+            const db = getDB();
+            db.session.user = null;
+            db.session.role = null;
+            db.session.pendingViolation = null;
+            setDB(db);
+
+            document.getElementById('main-header').style.display = 'none';
+            showPage('page-login');
+        }
+
+        /* ----------------------------------------------------
+           ADMIN RENDER (Exam + roster + seating)
+        ---------------------------------------------------- */
+        function renderAdmin() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+            const exam = db.exams.find(e => e.ExamId === Number(examId)) || db.exams[0];
+
+            // Fill exam detail form (dummy gösterim)
+            const nameEl = document.getElementById("admin-exam-name");
+            const roomEl = document.getElementById("admin-exam-room");
+            const dateEl = document.getElementById("admin-exam-date");
+            const timeEl = document.getElementById("admin-exam-time");
+            const rowsEl = document.getElementById("admin-seat-rows");
+            const colsEl = document.getElementById("admin-seat-cols");
+
+            if (exam) {
+                nameEl.value = exam.ExamName;
+                roomEl.value = exam.Room;
+                dateEl.value = exam.ExamDate;
+                timeEl.value = (exam.ExamTime || "10:00:00").slice(0,5);
+                rowsEl.value = exam.SeatRows;
+                colsEl.value = exam.SeatCols;
+            }
+
+            // Roster table (ExamRoster -> Students)
+            const rosterBody = document.querySelector("#admin-roster-table tbody");
+            const roster = db.examRoster.filter(r => r.ExamId === Number(examId));
+            rosterBody.innerHTML = roster.map(r => {
+                const s = findStudent(db, r.StudentId);
+                const seat = assignedSeat(db, examId, r.StudentId) || "-";
+                const active = s?.IsActive ? `<span class="pill ok">True</span>` : `<span class="pill bad">False</span>`;
+                return `
+                    <tr>
+                        <td>${esc(r.StudentId)}</td>
+                        <td>${esc(s?.FullName || "-")}</td>
+                        <td>${esc(s?.Email || "-")}</td>
+                        <td>${active}</td>
+                        <td>${esc(seat)}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function saveExamFromAdmin() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+            const exam = db.exams.find(e => e.ExamId === Number(examId));
+            if (!exam) return;
+
+            exam.ExamName = document.getElementById("admin-exam-name").value.trim() || exam.ExamName;
+            exam.Room = document.getElementById("admin-exam-room").value.trim() || exam.Room;
+            exam.ExamDate = document.getElementById("admin-exam-date").value || exam.ExamDate;
+            const t = document.getElementById("admin-exam-time").value || "10:00";
+            exam.ExamTime = (t.length === 5) ? `${t}:00` : t;
+
+            exam.SeatRows = Number(document.getElementById("admin-seat-rows").value || exam.SeatRows);
+            exam.SeatCols = Number(document.getElementById("admin-seat-cols").value || exam.SeatCols);
+
+            setDB(db);
+            renderSeating();
+            renderAdmin();
+            alert("Kaydedildi (demo: localStorage).");
+        }
+
+        function renderSeating() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+            const exam = db.exams.find(e => e.ExamId === Number(examId)) || db.exams[0];
+            if (!exam) return;
+
+            const rows = Number(document.getElementById("admin-seat-rows").value || exam.SeatRows);
+            const cols = Number(document.getElementById("admin-seat-cols").value || exam.SeatCols);
+
+            const grid = document.getElementById("admin-seat-grid");
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            // Build seat codes A1.., B1..
+            const seatCodes = [];
+            for (let r=0; r<rows; r++) {
+                const letter = String.fromCharCode(65 + r);
+                for (let c=1; c<=cols; c++) {
+                    seatCodes.push(`${letter}${c}`);
+                }
+            }
+
+            // Map assignments
+            const assignments = db.seatAssignments.filter(a => a.ExamId === Number(examId));
+            const assignMap = new Map(assignments.map(a => [a.SeatCode.toUpperCase(), a.StudentId]));
+
+            // Map checkins by observed seat
+            const checkins = db.checkIns.filter(c => c.ExamId === Number(examId));
+            const checkinBySeat = new Map(checkins.map(c => [String(c.ObservedSeat || "").toUpperCase(), c]));
+
+            grid.innerHTML = seatCodes.map(code => {
+                const assignedStudentId = assignMap.get(code.toUpperCase());
+                const ci = checkinBySeat.get(code.toUpperCase());
+                let cls = "";
+                if (ci && ci.Status === "CHECKED_IN") cls = "checked";
+                else if (ci && ci.Status === "VIOLATION") cls = "violation";
+                else if (assignedStudentId) cls = "assigned";
+
+                return `<div class="seat ${cls}" data-seat="${esc(code)}">${esc(code)}</div>`;
+            }).join("");
+
+            // click -> show details
+            grid.querySelectorAll(".seat").forEach(el => {
+                el.addEventListener("click", () => {
+                    const code = el.dataset.seat;
+                    const assignedStudentId = assignMap.get(code.toUpperCase());
+                    const ci = checkinBySeat.get(code.toUpperCase());
+
+                    const assignedStudent = assignedStudentId ? findStudent(db, assignedStudentId) : null;
+
+                    const lines = [];
+                    lines.push(`Seat: ${code}`);
+                    if (assignedStudentId) lines.push(`Assigned StudentId: ${assignedStudentId} (${assignedStudent?.FullName || "-"})`);
+                    else lines.push(`Assigned: (none)`);
+
+                    if (ci) {
+                        lines.push(`--- CheckIn ---`);
+                        lines.push(`Status: ${ci.Status}`);
+                        lines.push(`ObservedSeat: ${ci.ObservedSeat}`);
+                        lines.push(`Identity: ${ci.IdentityResult} (${ci.IdentityMatch}%)`);
+                        lines.push(`SeatResult: ${ci.SeatResult}`);
+                        if (ci.Notes) lines.push(`Notes: ${ci.Notes}`);
+                    } else {
+                        lines.push(`CheckIn: (none)`);
+                    }
+
+                    alert(lines.join("\n"));
+                });
+            });
+        }
+
+        /* ----------------------------------------------------
+           PROCTOR RENDER + CHECK-IN WORKFLOW
+        ---------------------------------------------------- */
+        function renderProctor() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+
+            const selector = document.getElementById("student-selector");
+            const roster = db.examRoster.filter(r => r.ExamId === Number(examId));
+
+            // Dropdown: show roster students (even inactive)
+            selector.innerHTML = roster.map(r => {
+                const s = findStudent(db, r.StudentId);
+                const seat = assignedSeat(db, examId, r.StudentId) || "-";
+                const active = s?.IsActive ? "Active" : "Inactive";
+                return `<option value="${r.StudentId}">${r.StudentId} - ${esc(s?.FullName || "-")} (Seat: ${esc(seat)}, ${active})</option>`;
+            }).join("");
+
+            // Reset status cards
+            document.getElementById('status-waiting').style.display = 'block';
+            document.getElementById('status-success').style.display = 'none';
+            document.getElementById('status-violation').style.display = 'none';
+
+            // clear input
+            document.getElementById("seat-input").value = "";
+            db.session.pendingViolation = null;
+
+            // reset last captured preview (does not touch seeded dummy data)
+            window.__capturedImageDataUrl = null;
+            const canvas = document.getElementById("capture-canvas");
+            if (canvas) canvas.style.display = "none";
+            const video = document.getElementById("live-video");
+            if (video) video.style.display = "none";
+            const overlay = document.getElementById("camera-overlay");
+            if (overlay) overlay.style.display = "flex";
+            const status = document.getElementById("camera-status");
+            if (status) status.innerText = "Kamera başlatılıyor...";
+
+            setDB(db);
+
+            // Auto-start camera when proctor page is shown
+            startCamera();
+        }
+
+        function runVerification() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+
+            const studentId = Number(document.getElementById("student-selector").value);
+            const observedSeatRaw = document.getElementById("seat-input").value.trim().toUpperCase();
+            const expectedSeat = assignedSeat(db, examId, studentId);
+
+            const s = findStudent(db, studentId);
+            if (!s) {
+                alert("Student not found.");
+                return;
+            }
+
+            // If user didn't type observed seat, use expected seat (demo)
+            const observedSeat = observedSeatRaw || (expectedSeat || "");
+
+            // Determine identity result:
+            // - If there is already seeded check-in for this student, reuse it (to match SSMS dummy)
+            // - Else generate a new identity score
+            let seeded = latestCheckIn(db, examId, studentId);
+            let identityMatch, identityResult;
+
+            if (seeded && seeded.CreatedAt.startsWith("2026-01-09")) {
+                identityMatch = seeded.IdentityMatch;
+                identityResult = seeded.IdentityResult;
+            } else {
+                // new simulation
+                identityMatch = Math.floor(80 + Math.random() * 20);
+                identityResult = identityMatch >= 70 ? "MATCH" : "NO_MATCH";
+            }
+
+            // Seat compliance
+            const seatResult = (expectedSeat && observedSeat && expectedSeat.toUpperCase() === observedSeat.toUpperCase()) ? "OK" : (expectedSeat ? "NOT_OK" : "OK");
+
+            // Final status
+            const status = (identityResult === "MATCH" && seatResult === "OK") ? "CHECKED_IN" : "VIOLATION";
+
+            // Timestamp
+            const now = new Date();
+            const nowTime = now.toLocaleTimeString();
+            document.querySelectorAll('.current-time').forEach(el => el.innerText = nowTime);
+
+            // Save check-in record (even for violation)
+            const newCheckInId = ++db.session.lastCheckInId;
+            const checkin = {
+                CheckInId: newCheckInId,
+                ExamId: examId,
+                StudentId: studentId,
+                ProctorUserId: 2, // SSMS: proctor userId=2
+                ObservedSeat: observedSeat,
+                IdentityMatch: identityMatch,
+                IdentityResult: identityResult,
+                SeatResult: seatResult,
+                Status: status,
+                CapturedImage: (window.__capturedImageDataUrl || null),
+                Notes: null,
+                CreatedAt: now.toISOString()
+            };
+
+            // For students that already have seeded checkin in SSMS dummy, we do NOT duplicate automatically.
+            // But if you want to "re-checkin", keep it. We'll allow new record always (realistic).
+            db.checkIns.push(checkin);
+
+            // Update UI
+            document.getElementById('status-waiting').style.display = 'none';
+            document.getElementById('status-success').style.display = 'none';
+            document.getElementById('status-violation').style.display = 'none';
+
+            if (status === "CHECKED_IN") {
+                document.getElementById('status-success').style.display = 'block';
+                document.getElementById("success-ml").innerText = `${identityMatch}% Eşleşme (MATCH)`;
+                document.getElementById("success-seat").innerText = expectedSeat ? `Doğru (Assigned: ${expectedSeat}, Observed: ${observedSeat})` : `OK`;
+                db.session.pendingViolation = null;
+            } else {
+                document.getElementById('status-violation').style.display = 'block';
+
+                // Decide violation type
+                let vType = "";
+                let details = "";
+                if (identityResult !== "MATCH") {
+                    vType = "IDENTITY_MISMATCH";
+                    details = `Match score: ${identityMatch}% (${identityResult})`;
+                } else if (seatResult !== "OK") {
+                    vType = "WRONG_SEAT";
+                    details = `Assigned: ${expectedSeat || "-"}, Observed: ${observedSeat}`;
+                } else {
+                    vType = "OTHER";
+                    details = "Violation detected.";
+                }
+
+                document.getElementById('violation-reason-text').innerText = `${vType} (${details})`;
+                document.getElementById("violation-notes").value = (vType === "WRONG_SEAT") ? "Observed seat mismatch." : "Face verification failed.";
+
+                db.session.pendingViolation = {
+                    CheckInId: newCheckInId,
+                    ExamId: examId,
+                    StudentId: studentId,
+                    ViolationType: vType,
+                    Details: details
+                };
+            }
+
+            setDB(db);
+
+            // Also re-render seating + reports silently (when user navigates)
+            renderSeating();
+        }
+
+        function createViolationFromUI() {
+            const db = getDB();
+            const pending = db.session.pendingViolation;
+
+            if (!pending) {
+                alert("Önce doğrulama yapıp bir violation oluşması gerekiyor.");
+                return;
+            }
+
+            const notes = document.getElementById("violation-notes").value.trim();
+            const evidenceFile = document.getElementById("violation-evidence").files[0];
+            const evidenceRef = evidenceFile ? evidenceFile.name : null;
+
+            const newViolationId = ++db.session.lastViolationId;
+
+            // Create violation record (like SSMS Violations table)
+            const violation = {
+                ViolationId: newViolationId,
+                CheckInId: pending.CheckInId,
+                ExamId: pending.ExamId,
+                StudentId: pending.StudentId,
+                ViolationType: pending.ViolationType,
+                Details: pending.Details + (notes ? ` | Notes: ${notes}` : ""),
+                EvidenceRef: evidenceRef,
+                CreatedAt: new Date().toISOString()
+            };
+
+            db.violations.push(violation);
+
+            // Update last checkin notes too (optional)
+            const ci = db.checkIns.find(c => c.CheckInId === pending.CheckInId);
+            if (ci) ci.Notes = notes || ci.Notes;
+
+            db.session.pendingViolation = null;
+            setDB(db);
+
+            alert("Violation kaydı oluşturuldu (demo: localStorage).");
+            renderReports();
+        }
+
+
+        /* ----------------------------------------------------
+           CAMERA (Auto-start on proctor page)
+           - Uses browser getUserMedia
+           - Does NOT change any seeded dummy data
+        ---------------------------------------------------- */
+        let cameraStream = null;
+        window.__capturedImageDataUrl = null;
+
+        async function startCamera() {
+            const video = document.getElementById("live-video");
+            const overlay = document.getElementById("camera-overlay");
+            const status = document.getElementById("camera-status");
+
+            if (!video || !overlay || !status) return;
+
+            // If already running, just show video
+            if (cameraStream && video.srcObject === cameraStream) {
+                video.style.display = "block";
+                overlay.style.display = "none";
+                return;
+            }
+
+            status.innerText = "Kamera başlatılıyor... (tarayıcı izin isteyebilir)";
+            overlay.style.display = "flex";
+            video.style.display = "none";
+
+            try {
+                // Some browsers require HTTPS or localhost for camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = cameraStream;
+
+                // play() can throw if not allowed yet
+                await video.play();
+
+                video.style.display = "block";
+                overlay.style.display = "none";
+            } catch (err) {
+                console.error("Camera start error:", err);
+                cameraStream = null;
+                video.srcObject = null;
+                video.style.display = "none";
+                overlay.style.display = "flex";
+
+                const msg = (err && err.name === "NotAllowedError")
+                    ? "Kamera izni verilmedi. Tarayıcıdan izin verip sayfayı yenileyin."
+                    : (err && err.name === "NotFoundError")
+                        ? "Kamera bulunamadı (device yok)."
+                        : "Kamera başlatılamadı. (HTTPS/localhost gerekebilir)";
+
+                status.innerText = msg;
+            }
+        }
+
+        function stopCamera() {
+            const video = document.getElementById("live-video");
+            const overlay = document.getElementById("camera-overlay");
+            const status = document.getElementById("camera-status");
+            const canvas = document.getElementById("capture-canvas");
+
+            if (canvas) canvas.style.display = "none";
+            if (video) {
+                video.pause?.();
+                video.srcObject = null;
+                video.style.display = "none";
+            }
+            if (overlay && status) {
+                overlay.style.display = "flex";
+                status.innerText = "Kamera kapalı.";
+            }
+
+            if (cameraStream) {
+                try { cameraStream.getTracks().forEach(t => t.stop()); } catch {}
+            }
+            cameraStream = null;
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById("live-video");
+            const canvas = document.getElementById("capture-canvas");
+            const overlay = document.getElementById("camera-overlay");
+            const status = document.getElementById("camera-status");
+
+            if (!video || !canvas || !status) return;
+
+            if (!cameraStream || video.readyState < 2) {
+                alert("Kamera hazır değil. İzin verip tekrar deneyin.");
+                startCamera();
+                return;
+            }
+
+            // Draw current frame to canvas
+            const w = video.videoWidth || 640;
+            const h = video.videoHeight || 480;
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, w, h);
+
+            // Store captured image in memory (optional) and show preview for the proctor
+            window.__capturedImageDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+            canvas.style.display = "block";
+            video.style.display = "none";
+            if (overlay) overlay.style.display = "none";
+
+            // small info for user
+            status.innerText = "Fotoğraf alındı. (Demo: sadece tarayıcı hafızasında)";
+        }
+
+
+        /* ----------------------------------------------------
+           REPORTS RENDER (dynamic from DB)
+        ---------------------------------------------------- */
+        function renderReports() {
+            const db = getDB();
+            const examId = db.session.currentExamId || 1;
+
+            const roster = db.examRoster.filter(r => r.ExamId === Number(examId));
+            const rosterIds = new Set(roster.map(r => r.StudentId));
+
+            const checkins = db.checkIns.filter(c => c.ExamId === Number(examId) && rosterIds.has(c.StudentId));
+            const checkedIn = checkins.filter(c => c.Status === "CHECKED_IN").length;
+
+            // violations table count
+            const violations = db.violations.filter(v => v.ExamId === Number(examId) && rosterIds.has(v.StudentId));
+            const absent = Math.max(0, roster.length - new Set(checkins.map(c => c.StudentId)).size);
+
+            document.getElementById("rep-total").innerText = roster.length;
+            document.getElementById("rep-checked").innerText = checkedIn;
+            document.getElementById("rep-violations").innerText = violations.length;
+            document.getElementById("rep-absent").innerText = absent;
+
+            // Build detailed table:
+            // show all checkins (latest per student) + mark if violation exists
+            const tbody = document.getElementById("rep-table-body");
+
+            const latestByStudent = new Map();
+            checkins.sort((a,b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)).forEach(ci => {
+                latestByStudent.set(ci.StudentId, ci);
+            });
+
+            const rows = [];
+
+            // show checkins first
+            [...latestByStudent.values()]
+                .sort((a,b) => new Date(a.CreatedAt) - new Date(b.CreatedAt))
+                .forEach(ci => {
+                    const hasViolation = violations.some(v => v.CheckInId === ci.CheckInId);
+                    const statusBadge = (ci.Status === "CHECKED_IN")
+                        ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">Checked-in</span>`
+                        : `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">Violation</span>`;
+
+                    let note = "";
+                    if (ci.Status === "CHECKED_IN") {
+                        note = `ML: ${ci.IdentityResult} (${ci.IdentityMatch}%) • Seat: ${ci.SeatResult} (${ci.ObservedSeat})`;
+                    } else {
+                        const v = violations.find(v => v.CheckInId === ci.CheckInId);
+                        note = v ? `${v.ViolationType} • ${esc(v.Details)}` : (ci.Notes ? esc(ci.Notes) : "Violation detected");
+                    }
+
+                    rows.push(`
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 10px;">${esc(fmtTime(ci.CreatedAt))}</td>
+                            <td style="padding: 10px;">${esc(ci.StudentId)}</td>
+                            <td style="padding: 10px;">${statusBadge}</td>
+                            <td style="padding: 10px;">${note}</td>
+                        </tr>
+                    `);
+                });
+
+            // also show violation records that may not be tied to latest checkin (rare)
+            // keep simple: already included above
+
+            tbody.innerHTML = rows.join("") || `
+                <tr><td style="padding:10px; color:#64748b;" colspan="4">Henüz kayıt yok.</td></tr>
+            `;
+        }
+
+        /* ----------------------------------------------------
+           INITIALIZE
+        ---------------------------------------------------- */
+        (function init() {
+            const db = getDB();
+
+            // If someone refreshes after login, restore header & role menus
+            if (db.session && db.session.user && db.session.role) {
+                const header = document.getElementById('main-header');
+                header.style.display = 'flex';
+
+                const normalizedRole = (db.session.role || "").toLowerCase();
+                if (normalizedRole === "admin") {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                    document.querySelectorAll('.proctor-only').forEach(el => el.style.display = 'none');
+                    showPage('page-admin');
+                } else {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.proctor-only').forEach(el => el.style.display = 'block');
+                    showPage('page-proctor');
+                }
+            } else {
+                // stay on login
+                showPage('page-login');
+            }
+        })();
+    </script>
+</body>
+</html>
