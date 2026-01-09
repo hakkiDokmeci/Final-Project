@@ -1,194 +1,123 @@
-🎓 Exam Security System
+# 🎓 Exam Security System
 
-Backend & Frontend Demonstration Project
+### Backend & Frontend Demonstration Project
 
-📌 Project Overview
+## 📌 Project Overview
 
-The Exam Security System is a demonstration project designed to showcase how backend-driven business rules can be used to enforce exam integrity.
-The system focuses on student check-in validation, seat compliance, identity verification, and violation logging, with a clear separation between backend logic and frontend presentation.
+The **Exam Security System** is a demonstration project designed to showcase how backend-driven business rules can be used to enforce exam integrity. The system focuses on student check-in validation, seat compliance, identity verification, and violation logging, with a clear separation between backend logic and frontend presentation.
 
-This project was developed as part of a Software Validation & Testing / Backend-Oriented Course Project, with emphasis on:
+This project was developed as part of a **Software Validation & Testing / Backend-Oriented Course Project**, with emphasis on:
+* Backend rule enforcement
+* Clean architecture
+* Unit testing
+* Minimal UI dependency
 
-Backend rule enforcement
+---
 
-Clean architecture
+## 🧠 Core Concept
 
-Unit testing
+> **"All critical rules are enforced in the backend."**
 
-Minimal UI dependency
+The frontend only displays data and triggers actions; it **cannot** override or manipulate system decisions.
 
-🧠 Core Concept
+---
 
-All critical rules are enforced in the backend.
-The frontend only displays data and triggers actions; it cannot override or manipulate system decisions.
+## 🏗️ System Architecture
 
-🏗️ System Architecture
-Backend
+### 🔙 Backend
+* **Framework:** ASP.NET Core Web API
+* **ORM:** Entity Framework Core (Database-First)
+* **Testing:** MSTest for unit testing
+* **Architecture:** Service-based business logic
+* **ML Integration:** ML abstraction layer (stubbed)
 
-ASP.NET Core Web API
+### 🖥️ Frontend
+* Simple UI with dummy/static data
+* Used only to demonstrate flow and screens
+* **No critical logic implemented on the frontend**
 
-Entity Framework Core (Database-First)
+---
 
-MSTest for unit testing
+## ⚙️ Backend Features
 
-Service-based business logic
+### 🔐 Authentication & Authorization
+* Role-based access control (**Admin**, **Proctor**).
+* Backend-enforced permissions using authorization attributes.
+* Zero frontend trust for sensitive operations.
 
-ML abstraction layer (stubbed)
+### 📝 Exam / Room / Seating Management
+* Exams are defined with:
+    * Room
+    * Date & Time
+    * Seating dimensions (Rows & Columns)
+* **Exam Roster:** Controls which students are eligible.
+* **Seating Plans:** Stored in the backend using seat codes (e.g., `A1`, `B2`).
 
-Frontend
-
-Simple UI with dummy/static data
-
-Used only to demonstrate flow and screens
-
-No critical logic implemented on the frontend
-
-⚙️ Backend Features
-🔐 Authentication & Authorization
-
-Role-based access control (Admin, Proctor)
-
-Backend-enforced permissions using authorization attributes
-
-No frontend trust for sensitive operations
-
-📝 Exam / Room / Seating Management
-
-Exams are defined with:
-
-Room
-
-Date & time
-
-Seating dimensions (rows & columns)
-
-Exam roster controls which students are eligible
-
-Seating plans are stored in the backend using seat codes (e.g., A1, B2)
-
-✅ Check-in Workflow
-
+### ✅ Check-in Workflow
 The backend processes each check-in request using the following inputs:
+1.  Exam ID
+2.  Student ID
+3.  Observed Seat Code
+4.  Captured Image Reference
+5.  Optional Notes
 
-Exam ID
+**Backend Logic Decisions:**
+* A student cannot check in twice for the same exam.
+* **Seat Compliance:** Checks assigned seat vs. observed seat.
+* **Identity Verification:** Performed via ML abstraction.
+* **Automatic Status Assignment:** `CHECKED_IN` or `VIOLATION`.
+* All check-ins are timestamped using server-side UTC time.
 
-Student ID
+### 🤖 Identity Verification (Computer Vision – Abstracted)
+Identity verification is handled via an interface: `IFaceMatchService`. The system simulates face verification using similarity score logic.
 
-Observed seat code
+* **Possible Results:** `MATCH`, `NO_MATCH`, `NOT_RUN`.
+* **Implementation:** A stub implementation (`FakeFaceMatchService`) is used to:
+    * Demonstrate ML integration architecture.
+    * Enable deterministic unit testing.
+    * Avoid dependency on real ML infrastructure during development.
 
-Captured image reference
+### 🚨 Violation Logging
+Violations are linked directly to the related check-in record and are automatically created when:
+* Identity verification fails.
+* Student sits in an incorrect seat.
 
-Optional notes
+**Violation Record Details:**
+* **Type:** `IDENTITY_MISMATCH`, `WRONG_SEAT`, `OTHER`
+* Detailed explanation
+* Optional evidence reference
+* Timestamp
 
-Backend decisions include:
+---
 
-A student cannot check in twice for the same exam
+## 🧪 Testing Strategy
 
-Seat compliance check (assigned vs observed seat)
+### Unit Tests
+* Written using **MSTest**.
+* Executed with **EF Core InMemory** database.
+* Focused entirely on critical business rules.
 
-Identity verification via ML abstraction
+### Covered Scenarios
+- [x] Valid check-in (No violation)
+- [x] Duplicate check-in prevention
+- [x] Wrong seat violation
+- [x] Identity mismatch violation
 
-Automatic status assignment:
+> **Testing Philosophy:** If a rule is important for exam security, it must be testable and enforced in the backend.
 
-CHECKED_IN
+---
 
-VIOLATION
+## 🗄️ Database Design
 
-Each check-in is timestamped using server-side UTC time.
+* **Approach:** Database-First (SQL Server schema created manually).
+* **Constraints Enforced:**
+    * Unique check-ins per Exam/Student.
+    * Valid enum-like values for status/results.
+    * Referential integrity.
+* **Reporting:** Views included for exam summary statistics and detailed check-in/violation reports.
 
-🤖 Identity Verification (Computer Vision – Abstracted)
+---
 
-Identity verification is handled via an interface: IFaceMatchService
+## 🎯 Project Goals Achieved
 
-The system simulates face verification using similarity score logic
-
-Results:
-
-MATCH
-
-NO_MATCH
-
-NOT_RUN
-
-A stub implementation (FakeFaceMatchService) is used to:
-
-Demonstrate ML integration
-
-Enable deterministic unit testing
-
-Avoid dependency on real ML infrastructure
-
-🚨 Violation Logging
-
-Violations are automatically created when:
-
-Identity verification fails
-
-Student sits in an incorrect seat
-
-Each violation includes:
-
-Violation type (IDENTITY_MISMATCH, WRONG_SEAT, OTHER)
-
-Detailed explanation
-
-Optional evidence reference
-
-Timestamp
-
-Violations are linked directly to the related check-in record.
-
-🧪 Testing Strategy
-Unit Tests
-
-Written using MSTest
-
-Executed with EF Core InMemory database
-
-Focus on critical business rules
-
-Covered Scenarios:
-
-Valid check-in (no violation)
-
-Duplicate check-in prevention
-
-Wrong seat violation
-
-Identity mismatch violation
-
-Testing Philosophy
-
-If a rule is important for exam security, it must be testable and enforced in the backend.
-
-🗄️ Database Design
-
-SQL Server schema created manually
-
-Database-first approach
-
-Constraints enforce:
-
-Unique check-ins per exam/student
-
-Valid enum-like values for status/results
-
-Referential integrity
-
-Reporting views are included for:
-
-Exam summary statistics
-
-Detailed check-in and violation reports
-
-🎯 Project Goals Achieved
-
-✅ Backend-driven business rules
-
-✅ Clear separation of concerns
-
-✅ Testable and extensible architecture
-
-✅ ML-ready design via abstraction
-
-✅ Minimal but sufficient frontend
+✅ **Backend-driven business rules** ✅ **Clear separation of concerns** ✅ **Testable and extensible architecture** ✅ **ML-ready design via abstraction** ✅ **Minimal but sufficient frontend**
